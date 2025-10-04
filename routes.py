@@ -37,13 +37,78 @@ def index():
 def add_trip():
     if request.method == 'POST':
         destination = request.form['destination']
-        start_date = datetime.strptime(request.form['start_date'], '%Y-%m-%d').date()
-        end_date = datetime.strptime(request.form['end_date'], '%Y-%m-%d').date()
-        description = request.form['description']
-
-        if start_date > end_date:
+        description = request.form.get('description', '')
+        
+        # Handle optional start_date and end_date
+        start_date = None
+        end_date = None
+        
+        if 'start_date' in request.form and request.form['start_date']:
+            start_date = datetime.strptime(request.form['start_date'], '%Y-%m-%d').date()
+        
+        if 'end_date' in request.form and request.form['end_date']:
+            end_date = datetime.strptime(request.form['end_date'], '%Y-%m-%d').date()
+        
+        # Validate dates if both are provided
+        if start_date and end_date and start_date > end_date:
             flash('End date cannot be earlier than start date!', 'error')
             return render_template('add_trip.html')
+
+        # Process accommodations and travels first to determine dates if needed
+        accommodations_data = {}
+        travels_data = {}
+        all_items = []  # To track the overall order
+        
+        # Extract accommodations and travels from form data
+        for key, value in request.form.items():
+            if key.startswith('accommodations[') and value:
+                # Parse accommodations[INDEX][field]
+                parts = key.replace('accommodations[', '').replace(']', '').split('[')
+                if len(parts) == 2:
+                    index, field = parts
+                    if index not in accommodations_data:
+                        accommodations_data[index] = {'type': 'accommodation', 'index': int(index)}
+                        all_items.append(('accommodation', int(index)))
+                    accommodations_data[index][field] = value
+            elif key.startswith('travels[') and value:
+                # Parse travels[INDEX][field]
+                parts = key.replace('travels[', '').replace(']', '').split('[')
+                if len(parts) == 2:
+                    index, field = parts
+                    if index not in travels_data:
+                        travels_data[index] = {'type': 'travel', 'index': int(index)}
+                        all_items.append(('travel', int(index)))
+                    travels_data[index][field] = value
+        
+        # If dates not provided, calculate from accommodations/travels
+        if not start_date or not end_date:
+            all_dates = []
+            
+            # Collect dates from accommodations
+            for acc_data in accommodations_data.values():
+                if 'check_in' in acc_data and acc_data['check_in']:
+                    all_dates.append(datetime.strptime(acc_data['check_in'], '%Y-%m-%d').date())
+                if 'check_out' in acc_data and acc_data['check_out']:
+                    all_dates.append(datetime.strptime(acc_data['check_out'], '%Y-%m-%d').date())
+            
+            # Collect dates from travels
+            for travel_data in travels_data.values():
+                if 'start_date' in travel_data and travel_data['start_date']:
+                    all_dates.append(datetime.strptime(travel_data['start_date'], '%Y-%m-%d').date())
+                if 'end_date' in travel_data and travel_data['end_date']:
+                    all_dates.append(datetime.strptime(travel_data['end_date'], '%Y-%m-%d').date())
+            
+            # Set trip dates from collected dates
+            if all_dates:
+                if not start_date:
+                    start_date = min(all_dates)
+                if not end_date:
+                    end_date = max(all_dates)
+            else:
+                # Default dates if no dates found
+                from datetime import date
+                start_date = start_date or date.today()
+                end_date = end_date or date.today()
 
         # Create the trip
         trip = Trip(
@@ -57,56 +122,49 @@ def add_trip():
         db.session.add(trip)
         db.session.flush()  # To get the trip.id
         
-        # Process accommodations
-        accommodations_data = {}
-        travels_data = {}
+        # Remove duplicates and sort by the blockIndex from frontend
+        unique_items = []
+        seen = set()
+        for item_type, index in all_items:
+            if (item_type, index) not in seen:
+                unique_items.append((item_type, index))
+                seen.add((item_type, index))
         
-        # Extract accommodations and travels from form data
-        for key, value in request.form.items():
-            if key.startswith('accommodations[') and value:
-                # Parse accommodations[INDEX][field]
-                parts = key.replace('accommodations[', '').replace(']', '').split('[')
-                if len(parts) == 2:
-                    index, field = parts
-                    if index not in accommodations_data:
-                        accommodations_data[index] = {}
-                    accommodations_data[index][field] = value
-            elif key.startswith('travels[') and value:
-                # Parse travels[INDEX][field]
-                parts = key.replace('travels[', '').replace(']', '').split('[')
-                if len(parts) == 2:
-                    index, field = parts
-                    if index not in travels_data:
-                        travels_data[index] = {}
-                    travels_data[index][field] = value
+        # Sort by index to maintain frontend order
+        unique_items.sort(key=lambda x: x[1])
         
-        # Create accommodation objects
+        # Create objects in the correct order
         from models import Accomodation, Travel
-        for acc_data in accommodations_data.values():
-            if all(field in acc_data for field in ['location', 'check_in', 'check_out', 'price']):
-                accommodation = Accomodation(
-                    location=acc_data['location'],
-                    check_in=datetime.strptime(acc_data['check_in'], '%Y-%m-%d').date(),
-                    check_out=datetime.strptime(acc_data['check_out'], '%Y-%m-%d').date(),
-                    price=float(acc_data['price']),
-                    standard=acc_data.get('standard', ''),
-                    link=acc_data.get('link', ''),
-                    trip_id=trip.id
-                )
-                db.session.add(accommodation)
         
-        # Create travel objects
-        for travel_data in travels_data.values():
-            if all(field in travel_data for field in ['from_location', 'to_location', 'start_date', 'end_date', 'price']):
-                travel = Travel(
-                    from_location=travel_data['from_location'],
-                    to_location=travel_data['to_location'],
-                    start_date=datetime.strptime(travel_data['start_date'], '%Y-%m-%d').date(),
-                    end_date=datetime.strptime(travel_data['end_date'], '%Y-%m-%d').date(),
-                    price=float(travel_data['price']),
-                    trip_id=trip.id
-                )
-                db.session.add(travel)
+        for order_index, (item_type, index) in enumerate(unique_items):
+            if item_type == 'accommodation' and str(index) in accommodations_data:
+                acc_data = accommodations_data[str(index)]
+                if all(field in acc_data for field in ['location', 'check_in', 'check_out', 'price']):
+                    accommodation = Accomodation(
+                        location=acc_data['location'],
+                        check_in=datetime.strptime(acc_data['check_in'], '%Y-%m-%d').date(),
+                        check_out=datetime.strptime(acc_data['check_out'], '%Y-%m-%d').date(),
+                        price=float(acc_data['price']),
+                        standard=acc_data.get('standard', ''),
+                        link=acc_data.get('link', ''),
+                        order_index=order_index,
+                        trip_id=trip.id
+                    )
+                    db.session.add(accommodation)
+            
+            elif item_type == 'travel' and str(index) in travels_data:
+                travel_data = travels_data[str(index)]
+                if all(field in travel_data for field in ['from_location', 'to_location', 'start_date', 'end_date', 'price']):
+                    travel = Travel(
+                        from_location=travel_data['from_location'],
+                        to_location=travel_data['to_location'],
+                        start_date=datetime.strptime(travel_data['start_date'], '%Y-%m-%d').date(),
+                        end_date=datetime.strptime(travel_data['end_date'], '%Y-%m-%d').date(),
+                        price=float(travel_data['price']),
+                        order_index=order_index,
+                        trip_id=trip.id
+                    )
+                    db.session.add(travel)
 
         db.session.commit()
         flash('Trip added successfully!', 'success')

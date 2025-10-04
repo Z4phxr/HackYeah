@@ -25,26 +25,6 @@
                                 </label>
                                 <input type="text" class="form-control" id="destination" name="destination" required>
                             </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label for="start_date" class="form-label">
-                                            <i class="fas fa-calendar-alt me-1"></i>Start Date
-                                        </label>
-                                        <input type="date" class="form-control" id="start_date" name="start_date" required>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label for="end_date" class="form-label">
-                                            <i class="fas fa-calendar-check me-1"></i>End Date
-                                        </label>
-                                        <input type="date" class="form-control" id="end_date" name="end_date" required>
-                                    </div>
-                                </div>
-                            </div>
-
                             <div class="mb-3">
                                 <label for="description" class="form-label">
                                     <i class="fas fa-sticky-note me-1"></i>Description (optional)
@@ -247,14 +227,8 @@ function removeBlock(button) {
 
 // Form validation
 document.getElementById('tripForm').addEventListener('submit', function(e) {
-    const startDate = new Date(document.getElementById('start_date').value);
-    const endDate = new Date(document.getElementById('end_date').value);
-    
-    if (startDate > endDate) {
-        e.preventDefault();
-        alert('End date cannot be earlier than start date!');
-        return false;
-    }
+    // Remove date validation since start_date and end_date fields are optional
+    // Add any other validation here if needed
 });
 </script>
 

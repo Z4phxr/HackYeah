@@ -48,60 +48,64 @@
                     </div>
                 </div>
 
-                {% if trip.accommodations %}
+                {% set ordered_items = trip.get_all_items_ordered() %}
+                {% if ordered_items %}
                 <div class="mt-4">
-                    <h5><i class="fas fa-bed me-2"></i>Accommodations</h5>
-                    {% for accommodation in trip.accommodations %}
-                    <div class="card mb-2">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <strong><i class="fas fa-map-marker-alt me-1"></i>{{ accommodation.location }}</strong>
+                    <h5><i class="fas fa-list me-2"></i>Trip Details (in order added)</h5>
+                    {% for item_data in ordered_items %}
+                        {% if item_data.type == 'accommodation' %}
+                            {% set accommodation = item_data.item %}
+                            <div class="card mb-2 border-info">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0"><i class="fas fa-bed me-2"></i>Accommodation</h6>
                                 </div>
-                                <div class="col-md-3">
-                                    <i class="fas fa-calendar me-1"></i>{{ accommodation.check_in.strftime('%d.%m.%Y') }} - {{ accommodation.check_out.strftime('%d.%m.%Y') }}
-                                </div>
-                                <div class="col-md-2">
-                                    <i class="fas fa-dollar-sign me-1"></i>${{ accommodation.price }}
-                                </div>
-                                <div class="col-md-2">
-                                    {% if accommodation.standard %}
-                                        <span class="badge bg-info">{{ accommodation.standard }}</span>
-                                    {% endif %}
-                                </div>
-                                <div class="col-md-1">
-                                    {% if accommodation.link %}
-                                        <a href="{{ accommodation.link }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-external-link-alt"></i>
-                                        </a>
-                                    {% endif %}
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <strong><i class="fas fa-map-marker-alt me-1"></i>{{ accommodation.location }}</strong>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <i class="fas fa-calendar me-1"></i>{{ accommodation.check_in.strftime('%d.%m.%Y') }} - {{ accommodation.check_out.strftime('%d.%m.%Y') }}
+                                        </div>
+                                        <div class="col-md-2">
+                                            <i class="fas fa-dollar-sign me-1"></i>${{ accommodation.price }}
+                                        </div>
+                                        <div class="col-md-2">
+                                            {% if accommodation.standard %}
+                                                <span class="badge bg-info">{{ accommodation.standard }}</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-md-1">
+                                            {% if accommodation.link %}
+                                                <a href="{{ accommodation.link }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-external-link-alt"></i>
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-
-                {% if trip.travels %}
-                <div class="mt-4">
-                    <h5><i class="fas fa-plane me-2"></i>Travels</h5>
-                    {% for travel in trip.travels %}
-                    <div class="card mb-2">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <strong><i class="fas fa-route me-1"></i>{{ travel.from_location }} → {{ travel.to_location }}</strong>
+                        {% elif item_data.type == 'travel' %}
+                            {% set travel = item_data.item %}
+                            <div class="card mb-2 border-warning">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0"><i class="fas fa-plane me-2"></i>Travel</h6>
                                 </div>
-                                <div class="col-md-4">
-                                    <i class="fas fa-calendar me-1"></i>{{ travel.start_date.strftime('%d.%m.%Y') }} - {{ travel.end_date.strftime('%d.%m.%Y') }}
-                                </div>
-                                <div class="col-md-4">
-                                    <i class="fas fa-dollar-sign me-1"></i>${{ travel.price }}
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <strong><i class="fas fa-route me-1"></i>{{ travel.from_location }} → {{ travel.to_location }}</strong>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <i class="fas fa-calendar me-1"></i>{{ travel.start_date.strftime('%d.%m.%Y') }} - {{ travel.end_date.strftime('%d.%m.%Y') }}
+                                        </div>
+                                        <div class="col-md-4">
+                                            <i class="fas fa-dollar-sign me-1"></i>${{ travel.price }}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
+                        {% endif %}
                     {% endfor %}
                 </div>
                 {% endif %}
