@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}{{ trip.destination }} - Travel Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-map-marker-alt me-2"></i>{{ trip.destination }}
+                    </h3>
+                    <span class="badge bg-primary fs-6">
+                        <i class="fas fa-calendar me-1"></i>
+                        {{ trip.start_date.strftime('%d.%m.%Y') }} - {{ trip.end_date.strftime('%d.%m.%Y') }}
+                    </span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if trip.description %}
+                    <div class="mb-4">
+                        <h5><i class="fas fa-sticky-note me-2"></i>Opis podróży</h5>
+                        <div class="bg-light p-3 rounded">
+                            {{ trip.description|replace('\n', '<br>')|safe }}
+                        </div>
+                    </div>
+                {% endif %}
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <i class="fas fa-play-circle fa-2x text-success mb-2"></i>
+                                <h6>Data rozpoczęcia</h6>
+                                <p class="fw-bold">{{ trip.start_date.strftime('%d %B %Y') }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <i class="fas fa-stop-circle fa-2x text-danger mb-2"></i>
+                                <h6>Data zakończenia</h6>
+                                <p class="fw-bold">{{ trip.end_date.strftime('%d %B %Y') }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 text-center">
+                    <small class="text-muted">
+                        <i class="fas fa-clock me-1"></i>
+                        Dodane: {{ trip.created_at.strftime('%d.%m.%Y o %H:%M') }}
+                    </small>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Powrót do listy
+                    </a>
+                    <a href="{{ url_for('delete_trip', id=trip.id) }}" 
+                       class="btn btn-danger"
+                       onclick="return confirm('Czy na pewno chcesz usunąć tę podróż?')">
+                        <i class="fas fa-trash me-1"></i>Usuń podróż
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
