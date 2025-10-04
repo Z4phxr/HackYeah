@@ -13,7 +13,7 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
-    login_manager.login_message = 'Musisz się zalogować, aby uzyskać dostęp do tej strony.'
+    login_manager.login_message = 'You must log in to access this page.'
     login_manager.login_message_category = 'info'
     
     # User loader for Flask-Login

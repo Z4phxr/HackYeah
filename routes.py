@@ -1,9 +1,10 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime
 from app import db
 from models import Trip
 from users import User
+from friends import Friendship
 
 main_bp = Blueprint('main', __name__)
 
@@ -22,7 +23,7 @@ def add_trip():
         description = request.form['description']
 
         if start_date > end_date:
-            flash('Data końcowa nie może być wcześniejsza niż data początkowa!', 'error')
+            flash('End date cannot be earlier than start date!', 'error')
             return render_template('add_trip.html')
 
         trip = Trip(
@@ -34,7 +35,7 @@ def add_trip():
 
         db.session.add(trip)
         db.session.commit()
-        flash('Podróż została dodana pomyślnie!', 'success')
+        flash('Trip added successfully!', 'success')
         return redirect(url_for('main.index'))
 
     return render_template('add_trip.html')
@@ -49,7 +50,7 @@ def delete_trip(id):
     trip = Trip.query.get_or_404(id)
     db.session.delete(trip)
     db.session.commit()
-    flash('Podróż została usunięta!', 'success')
+    flash('Trip deleted!', 'success')
     return redirect(url_for('main.index'))
 
 
@@ -70,10 +71,10 @@ def login():
         
         if user and user.check_password(password):
             login_user(user, remember=remember)
-            flash('Zalogowano pomyślnie!', 'success')
+            flash('Logged in successfully!', 'success')
             return redirect(url_for('main.index'))
         else:
-            flash('Nieprawidłowa nazwa użytkownika/email lub hasło.', 'error')
+            flash('Invalid username/email or password.', 'error')
     
     return render_template('login.html')
 
@@ -92,16 +93,16 @@ def register():
         
         # Validation
         if password != password_confirm:
-            flash('Hasła nie są identyczne!', 'error')
+            flash('Passwords are not identical!', 'error')
             return render_template('register.html')
         
         # Check if user already exists
         if User.query.filter_by(username=username).first():
-            flash('Nazwa użytkownika już istnieje!', 'error')
+            flash('Username already exists!', 'error')
             return render_template('register.html')
         
         if User.query.filter_by(email=email).first():
-            flash('Email już jest zarejestrowany!', 'error')
+            flash('Email is already registered!', 'error')
             return render_template('register.html')
         
         # Create new user
@@ -116,7 +117,7 @@ def register():
         db.session.add(user)
         db.session.commit()
         
-        flash('Rejestracja zakończona pomyślnie! Możesz się teraz zalogować.', 'success')
+        flash('Registration completed successfully! You can now log in.', 'success')
         return redirect(url_for('main.login'))
     
     return render_template('register.html')
@@ -125,7 +126,7 @@ def register():
 @login_required
 def logout():
     logout_user()
-    flash('Zostałeś wylogowany.', 'info')
+    flash('You have been logged out.', 'info')
     return redirect(url_for('main.index'))
 
 @main_bp.route('/debug/database')
@@ -171,3 +172,105 @@ def debug_database():
             'data': users_data
         }
     })
+
+
+@main_bp.route('/friends')
+@login_required
+def friends():
+    # Get user's friends
+    user_friends = Friendship.get_user_friends(current_user.id)
+    
+    # Get pending requests (received)
+    pending_requests = Friendship.get_pending_requests(current_user.id)
+    
+    # Get sent requests
+    sent_requests = Friendship.get_sent_requests(current_user.id)
+    
+    return render_template('friends.html', 
+                         friends=user_friends,
+                         pending_requests=pending_requests,
+                         sent_requests=sent_requests)
+
+@main_bp.route('/send_friend_request', methods=['POST'])
+@login_required
+def send_friend_request():
+    email = request.form.get('email', '').strip()
+    
+    if not email:
+        flash('Please enter an email address.', 'error')
+        return redirect(url_for('main.friends'))
+    
+    # Check if user exists
+    target_user = User.query.filter_by(email=email).first()
+    if not target_user:
+        flash('No user found with that email address.', 'error')
+        return redirect(url_for('main.friends'))
+    
+    # Check if trying to add themselves
+    if target_user.id == current_user.id:
+        flash('You cannot send a friend request to yourself.', 'error')
+        return redirect(url_for('main.friends'))
+    
+    # Check if friendship already exists
+    existing_friendship = Friendship.get_friendship(current_user.id, target_user.id)
+    if existing_friendship:
+        if existing_friendship.status == 'accepted':
+            flash(f'You are already friends with {target_user.full_name}.', 'info')
+        elif existing_friendship.status == 'pending':
+            if existing_friendship.requester_id == current_user.id:
+                flash(f'You already sent a friend request to {target_user.full_name}.', 'info')
+            else:
+                flash(f'{target_user.full_name} already sent you a friend request. Check your pending requests.', 'info')
+        elif existing_friendship.status == 'blocked':
+            flash('Unable to send friend request.', 'error')
+        return redirect(url_for('main.friends'))
+    
+    # Create new friendship request
+    friendship = Friendship(
+        requester_id=current_user.id,
+        addressee_id=target_user.id,
+        status='pending'
+    )
+    
+    db.session.add(friendship)
+    db.session.commit()
+    
+    flash(f'Friend request sent to {target_user.full_name}!', 'success')
+    return redirect(url_for('main.friends'))
+
+@main_bp.route('/respond_friend_request/<int:friendship_id>/<action>')
+@login_required
+def respond_friend_request(friendship_id, action):
+    friendship = Friendship.query.get_or_404(friendship_id)
+    
+    # Check if current user is the addressee
+    if friendship.addressee_id != current_user.id:
+        flash('Unauthorized action.', 'error')
+        return redirect(url_for('main.friends'))
+    
+    if action == 'accept':
+        friendship.accept()
+        flash(f'You are now friends with {friendship.requester.full_name}!', 'success')
+    elif action == 'decline':
+        friendship.decline()
+        flash(f'Friend request from {friendship.requester.full_name} declined.', 'info')
+    else:
+        flash('Invalid action.', 'error')
+    
+    return redirect(url_for('main.friends'))
+
+@main_bp.route('/remove_friend/<int:user_id>')
+@login_required
+def remove_friend(user_id):
+    friendship = Friendship.get_friendship(current_user.id, user_id)
+    
+    if not friendship or friendship.status != 'accepted':
+        flash('This user is not your friend.', 'error')
+        return redirect(url_for('main.friends'))
+    
+    # Remove the friendship
+    db.session.delete(friendship)
+    db.session.commit()
+    
+    flash('Friend removed.', 'info')
+    return redirect(url_for('main.friends'))

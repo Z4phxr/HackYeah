@@ -8,6 +8,7 @@ if __name__ == '__main__':
         # Import models here to ensure tables are created
         import models
         import users
+        import friends
         
         # Force remove existing database if it exists
         db_path = 'travel_tracker.db'

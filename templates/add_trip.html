@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Dodaj Podróż - Travel Tracker{% endblock %}
+{% block title %}Add Trip - Travel Tracker{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -8,14 +8,14 @@
         <div class="card">
             <div class="card-header">
                 <h3 class="mb-0">
-                    <i class="fas fa-plus-circle me-2"></i>Dodaj nową podróż
+                    <i class="fas fa-plus-circle me-2"></i>Add New Trip
                 </h3>
             </div>
             <div class="card-body">
                 <form method="POST">
                     <div class="mb-3">
                         <label for="destination" class="form-label">
-                            <i class="fas fa-map-marker-alt me-1"></i>Miejsce docelowe
+                            <i class="fas fa-map-marker-alt me-1"></i>Destination
                         </label>
                         <input type="text" class="form-control" id="destination" name="destination" required>
                     </div>
@@ -24,7 +24,7 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="start_date" class="form-label">
-                                    <i class="fas fa-calendar-alt me-1"></i>Data początkowa
+                                    <i class="fas fa-calendar-alt me-1"></i>Start Date
                                 </label>
                                 <input type="date" class="form-control" id="start_date" name="start_date" required>
                             </div>
@@ -32,7 +32,7 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="end_date" class="form-label">
-                                    <i class="fas fa-calendar-check me-1"></i>Data końcowa
+                                    <i class="fas fa-calendar-check me-1"></i>End Date
                                 </label>
                                 <input type="date" class="form-control" id="end_date" name="end_date" required>
                             </div>
@@ -41,18 +41,18 @@
 
                     <div class="mb-3">
                         <label for="description" class="form-label">
-                            <i class="fas fa-sticky-note me-1"></i>Opis (opcjonalny)
+                            <i class="fas fa-sticky-note me-1"></i>Description (optional)
                         </label>
                         <textarea class="form-control" id="description" name="description" rows="4" 
-                                  placeholder="Opisz swoją podróż, wrażenia, miejsca które odwiedziłeś..."></textarea>
+                                  placeholder="Describe your trip, experiences, places you visited..."></textarea>
                     </div>
 
                     <div class="d-flex justify-content-between">
                         <a href="{{ url_for('main.index') }}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left me-1"></i>Powrót
+                            <i class="fas fa-arrow-left me-1"></i>Back
                         </a>
                         <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-1"></i>Zapisz podróż
+                            <i class="fas fa-save me-1"></i>Save Trip
                         </button>
                     </div>
                 </form>
