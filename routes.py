@@ -11,10 +11,14 @@ main_bp = Blueprint('main', __name__)
 @main_bp.route('/')
 @main_bp.route('/index')
 def index():
-    trips = Trip.query.order_by(Trip.start_date.desc()).all()
+    if current_user.is_authenticated:
+        trips = Trip.query.filter_by(user_id=current_user.id).order_by(Trip.start_date.desc()).all()
+    else:
+        trips = []
     return render_template('index.html', trips=trips)
 
 @main_bp.route('/add_trip', methods=['GET', 'POST'])
+@login_required
 def add_trip():
     if request.method == 'POST':
         destination = request.form['destination']
@@ -30,7 +34,8 @@ def add_trip():
             destination=destination,
             start_date=start_date,
             end_date=end_date,
-            description=description
+            description=description,
+            user_id=current_user.id
         )
 
         db.session.add(trip)
@@ -41,13 +46,15 @@ def add_trip():
     return render_template('add_trip.html')
 
 @main_bp.route('/trip/<int:id>')
+@login_required
 def trip_detail(id):
-    trip = Trip.query.get_or_404(id)
+    trip = Trip.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     return render_template('trip_detail.html', trip=trip)
 
 @main_bp.route('/delete_trip/<int:id>')
+@login_required
 def delete_trip(id):
-    trip = Trip.query.get_or_404(id)
+    trip = Trip.query.filter_by(id=id, user_id=current_user.id).first_or_404()
     db.session.delete(trip)
     db.session.commit()
     flash('Trip deleted!', 'success')

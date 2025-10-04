@@ -12,7 +12,7 @@ def create_app():
     # Initialize extensions
     db.init_app(app)
     login_manager.init_app(app)
-    login_manager.login_view = 'auth.login'
+    login_manager.login_view = 'main.login'
     login_manager.login_message = 'You must log in to access this page.'
     login_manager.login_message_category = 'info'
     

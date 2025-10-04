@@ -13,8 +13,7 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
     
-    # Temporarily remove relationship until we fix the schema
-    # trips = db.relationship('Trip', backref='user', lazy=True, cascade='all, delete-orphan')
+    # Note: trips relationship is defined in Trip model with backref
     
     def __repr__(self):
         return f'<User {self.username}>'
@@ -34,13 +33,11 @@ class User(UserMixin, db.Model):
     
     def get_trips_count(self):
         """Return the number of trips for this user"""
-        # Temporarily return 0 until we restore the relationship
-        return 0
+        return len(self.trips)
     
     def get_recent_trips(self, limit=5):
         """Get recent trips for this user"""
-        # Temporarily return empty list until we restore the relationship
-        return []
+        return sorted(self.trips, key=lambda x: x.created_at, reverse=True)[:limit]
     
     def to_dict(self):
         """Convert user object to dictionary (excluding sensitive data)"""

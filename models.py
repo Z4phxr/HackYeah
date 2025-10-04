@@ -4,7 +4,7 @@ from app import db
 class Trip(db.Model):
     __tablename__ = 'trips'
     id = db.Column(db.Integer, primary_key=True)
-    use_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     destination = db.Column(db.String(100), nullable=False)
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
@@ -14,6 +14,9 @@ class Trip(db.Model):
     # relacje do "dzieci"
     accommodations = db.relationship('Accomodation', back_populates="trip", cascade="all, delete-orphan", lazy="selectin")
     travels = db.relationship('Travel', back_populates="trip", cascade="all, delete-orphan", lazy="selectin")
+    
+    # Relationship to User
+    user = db.relationship('User', backref='trips')
 
     def __repr__(self):
         return f"<Trip {self.id}->{self.destination} {self.start_date} {self.end_date}>"
