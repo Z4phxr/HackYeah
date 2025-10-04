@@ -131,12 +131,13 @@ def logout():
 
 @main_bp.route('/debug/database')
 def debug_database():
-    """Route do wyświetlania wszystkich obiektów z bazy danych"""
+    """Route to display all objects from the database"""
     from flask import jsonify
     
-    # Pobierz wszystkie podróże
+    # Get all trips
     trips = Trip.query.all()
     users = User.query.all()
+    friendships = Friendship.query.all()
     
     trips_data = []
     for trip in trips:
@@ -162,6 +163,19 @@ def debug_database():
             'is_active': user.is_active
         })
     
+    friendships_data = []
+    for friendship in friendships:
+        friendships_data.append({
+            'id': friendship.id,
+            'requester_id': friendship.requester_id,
+            'requester_name': friendship.requester.full_name if friendship.requester else 'Unknown',
+            'addressee_id': friendship.addressee_id,
+            'addressee_name': friendship.addressee.full_name if friendship.addressee else 'Unknown',
+            'status': friendship.status,
+            'created_at': friendship.created_at.strftime('%Y-%m-%d %H:%M:%S') if friendship.created_at else None,
+            'updated_at': friendship.updated_at.strftime('%Y-%m-%d %H:%M:%S') if friendship.updated_at else None
+        })
+    
     return jsonify({
         'trips': {
             'count': len(trips_data),
@@ -170,8 +184,24 @@ def debug_database():
         'users': {
             'count': len(users_data),
             'data': users_data
+        },
+        'friendships': {
+            'count': len(friendships_data),
+            'data': friendships_data
         }
     })
+
+@main_bp.route('/debug/view')
+def debug_view():
+    """Route to display database contents in a readable web page"""
+    trips = Trip.query.all()
+    users = User.query.all()
+    friendships = Friendship.query.all()
+    
+    return render_template('debug.html', 
+                         trips=trips, 
+                         users=users, 
+                         friendships=friendships)
 
 
 @main_bp.route('/friends')

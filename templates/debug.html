@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Database Debug - Travel Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2>Database Contents</h2>
+        
+        <!-- Users Table -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Users ({{ users|length }})</h5>
+            </div>
+            <div class="card-body">
+                {% if users %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Full Name</th>
+                                    <th>Created At</th>
+                                    <th>Active</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td>{{ user.id }}</td>
+                                    <td>{{ user.username }}</td>
+                                    <td>{{ user.email }}</td>
+                                    <td>{{ user.full_name }}</td>
+                                    <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else 'N/A' }}</td>
+                                    <td>
+                                        {% if user.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No users found.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Trips Table -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Trips ({{ trips|length }})</h5>
+            </div>
+            <div class="card-body">
+                {% if trips %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Destination</th>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th>Description</th>
+                                    <th>Created At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for trip in trips %}
+                                <tr>
+                                    <td>{{ trip.id }}</td>
+                                    <td>{{ trip.destination }}</td>
+                                    <td>{{ trip.start_date.strftime('%Y-%m-%d') if trip.start_date else 'N/A' }}</td>
+                                    <td>{{ trip.end_date.strftime('%Y-%m-%d') if trip.end_date else 'N/A' }}</td>
+                                    <td>{{ trip.description[:50] + '...' if trip.description and trip.description|length > 50 else trip.description or 'N/A' }}</td>
+                                    <td>{{ trip.created_at.strftime('%Y-%m-%d %H:%M:%S') if trip.created_at else 'N/A' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No trips found.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Friendships Table -->
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">Friendships ({{ friendships|length }})</h5>
+            </div>
+            <div class="card-body">
+                {% if friendships %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Requester</th>
+                                    <th>Addressee</th>
+                                    <th>Status</th>
+                                    <th>Created At</th>
+                                    <th>Updated At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for friendship in friendships %}
+                                <tr>
+                                    <td>{{ friendship.id }}</td>
+                                    <td>
+                                        {{ friendship.requester.full_name if friendship.requester else 'Unknown' }}
+                                        <small class="text-muted">(ID: {{ friendship.requester_id }})</small>
+                                    </td>
+                                    <td>
+                                        {{ friendship.addressee.full_name if friendship.addressee else 'Unknown' }}
+                                        <small class="text-muted">(ID: {{ friendship.addressee_id }})</small>
+                                    </td>
+                                    <td>
+                                        {% if friendship.status == 'accepted' %}
+                                            <span class="badge bg-success">{{ friendship.status|title }}</span>
+                                        {% elif friendship.status == 'pending' %}
+                                            <span class="badge bg-warning">{{ friendship.status|title }}</span>
+                                        {% elif friendship.status == 'declined' %}
+                                            <span class="badge bg-secondary">{{ friendship.status|title }}</span>
+                                        {% else %}
+                                            <span class="badge bg-dark">{{ friendship.status|title }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ friendship.created_at.strftime('%Y-%m-%d %H:%M:%S') if friendship.created_at else 'N/A' }}</td>
+                                    <td>{{ friendship.updated_at.strftime('%Y-%m-%d %H:%M:%S') if friendship.updated_at else 'N/A' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No friendships found.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Database Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <a href="{{ url_for('main.debug_database') }}" class="btn btn-outline-primary me-2" target="_blank">
+                            <i class="fas fa-code me-1"></i>View JSON Data
+                        </a>
+                        <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-home me-1"></i>Back to Home
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-md-end">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Debug view for development purposes
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
