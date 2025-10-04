@@ -20,7 +20,7 @@
             <div class="card-body">
                 {% if trip.description %}
                     <div class="mb-4">
-                        <h5><i class="fas fa-sticky-note me-2"></i>Opis podróży</h5>
+                        <h5><i class="fas fa-sticky-note me-2"></i>Trip Description</h5>
                         <div class="bg-light p-3 rounded">
                             {{ trip.description|replace('\n', '<br>')|safe }}
                         </div>
@@ -32,7 +32,7 @@
                         <div class="card bg-light">
                             <div class="card-body text-center">
                                 <i class="fas fa-play-circle fa-2x text-success mb-2"></i>
-                                <h6>Data rozpoczęcia</h6>
+                                <h6>Start Date</h6>
                                 <p class="fw-bold">{{ trip.start_date.strftime('%d %B %Y') }}</p>
                             </div>
                         </div>
@@ -41,7 +41,7 @@
                         <div class="card bg-light">
                             <div class="card-body text-center">
                                 <i class="fas fa-stop-circle fa-2x text-danger mb-2"></i>
-                                <h6>Data zakończenia</h6>
+                                <h6>End Date</h6>
                                 <p class="fw-bold">{{ trip.end_date.strftime('%d %B %Y') }}</p>
                             </div>
                         </div>
@@ -51,19 +51,19 @@
                 <div class="mt-4 text-center">
                     <small class="text-muted">
                         <i class="fas fa-clock me-1"></i>
-                        Dodane: {{ trip.created_at.strftime('%d.%m.%Y o %H:%M') }}
+                        Added: {{ trip.created_at.strftime('%d.%m.%Y at %H:%M') }}
                     </small>
                 </div>
             </div>
             <div class="card-footer">
                 <div class="d-flex justify-content-between">
                     <a href="{{ url_for('main.index') }}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left me-1"></i>Powrót do listy
+                        <i class="fas fa-arrow-left me-1"></i>Back to list
                     </a>
                     <a href="{{ url_for('main.delete_trip', id=trip.id) }}" 
                        class="btn btn-danger"
-                       onclick="return confirm('Czy na pewno chcesz usunąć tę podróż?')">
-                        <i class="fas fa-trash me-1"></i>Usuń podróż
+                       onclick="return confirm('Are you sure you want to delete this trip?')">
+                        <i class="fas fa-trash me-1"></i>Delete Trip
                     </a>
                 </div>
             </div>
