@@ -1,19 +1,16 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_sqlalchemy import SQLAlchemy
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from datetime import datetime
-import os
-
-from main import app
+from app import db
 from models import Trip
 
-db = SQLAlchemy(app)
-@app.route('/')
+main_bp = Blueprint('main', __name__)
+
+@main_bp.route('/')
 def index():
     trips = Trip.query.order_by(Trip.start_date.desc()).all()
     return render_template('index.html', trips=trips)
 
-
-@app.route('/add_trip', methods=['GET', 'POST'])
+@main_bp.route('/add_trip', methods=['GET', 'POST'])
 def add_trip():
     if request.method == 'POST':
         destination = request.form['destination']
@@ -35,21 +32,19 @@ def add_trip():
         db.session.add(trip)
         db.session.commit()
         flash('Podróż została dodana pomyślnie!', 'success')
-        return redirect(url_for('index'))
+        return redirect(url_for('main.index'))
 
     return render_template('add_trip.html')
 
-
-@app.route('/trip/<int:id>')
+@main_bp.route('/trip/<int:id>')
 def trip_detail(id):
     trip = Trip.query.get_or_404(id)
     return render_template('trip_detail.html', trip=trip)
 
-
-@app.route('/delete_trip/<int:id>')
+@main_bp.route('/delete_trip/<int:id>')
 def delete_trip(id):
     trip = Trip.query.get_or_404(id)
     db.session.delete(trip)
     db.session.commit()
     flash('Podróż została usunięta!', 'success')
-    return redirect(url_for('index'))
+    return redirect(url_for('main.index'))
