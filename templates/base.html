@@ -42,9 +42,24 @@
                 <a class="nav-link" href="{{ url_for('main.index') }}">
                     <i class="fas fa-home me-1"></i>Strona główna
                 </a>
-                <a class="nav-link" href="{{ url_for('main.add_trip') }}">
-                    <i class="fas fa-plus me-1"></i>Dodaj podróż
-                </a>
+                {% if current_user.is_authenticated %}
+                    <a class="nav-link" href="{{ url_for('main.add_trip') }}">
+                        <i class="fas fa-plus me-1"></i>Dodaj podróż
+                    </a>
+                    <span class="nav-link text-light">
+                        <i class="fas fa-user me-1"></i>{{ current_user.first_name }}
+                    </span>
+                    <a class="nav-link" href="{{ url_for('main.logout') }}">
+                        <i class="fas fa-sign-out-alt me-1"></i>Wyloguj
+                    </a>
+                {% else %}
+                    <a class="nav-link" href="{{ url_for('main.login') }}">
+                        <i class="fas fa-sign-in-alt me-1"></i>Zaloguj
+                    </a>
+                    <a class="nav-link" href="{{ url_for('main.register') }}">
+                        <i class="fas fa-user-plus me-1"></i>Rejestracja
+                    </a>
+                {% endif %}
             </div>
         </div>
     </nav>
