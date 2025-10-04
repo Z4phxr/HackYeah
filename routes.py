@@ -5,6 +5,7 @@ from app import db
 from models import Trip
 from users import User
 from friends import Friendship
+from trip_sharing import TripSharing
 
 main_bp = Blueprint('main', __name__)
 
@@ -12,10 +13,24 @@ main_bp = Blueprint('main', __name__)
 @main_bp.route('/index')
 def index():
     if current_user.is_authenticated:
+        # Get user's own trips
         trips = Trip.query.filter_by(user_id=current_user.id).order_by(Trip.start_date.desc()).all()
+        
+        # Get shared trips
+        shared_trips = TripSharing.get_user_shared_trips(current_user.id)
+        shared_trip_objects = [sharing.trip for sharing in shared_trips]
+        
+        # Get pending trip invitations
+        pending_invitations = TripSharing.get_pending_invitations(current_user.id)
     else:
         trips = []
-    return render_template('index.html', trips=trips)
+        shared_trip_objects = []
+        pending_invitations = []
+    
+    return render_template('index.html', 
+                         trips=trips, 
+                         shared_trips=shared_trip_objects,
+                         pending_invitations=pending_invitations)
 
 @main_bp.route('/add_trip', methods=['GET', 'POST'])
 @login_required
@@ -30,6 +45,7 @@ def add_trip():
             flash('End date cannot be earlier than start date!', 'error')
             return render_template('add_trip.html')
 
+        # Create the trip
         trip = Trip(
             destination=destination,
             start_date=start_date,
@@ -39,6 +55,59 @@ def add_trip():
         )
 
         db.session.add(trip)
+        db.session.flush()  # To get the trip.id
+        
+        # Process accommodations
+        accommodations_data = {}
+        travels_data = {}
+        
+        # Extract accommodations and travels from form data
+        for key, value in request.form.items():
+            if key.startswith('accommodations[') and value:
+                # Parse accommodations[INDEX][field]
+                parts = key.replace('accommodations[', '').replace(']', '').split('[')
+                if len(parts) == 2:
+                    index, field = parts
+                    if index not in accommodations_data:
+                        accommodations_data[index] = {}
+                    accommodations_data[index][field] = value
+            elif key.startswith('travels[') and value:
+                # Parse travels[INDEX][field]
+                parts = key.replace('travels[', '').replace(']', '').split('[')
+                if len(parts) == 2:
+                    index, field = parts
+                    if index not in travels_data:
+                        travels_data[index] = {}
+                    travels_data[index][field] = value
+        
+        # Create accommodation objects
+        from models import Accomodation, Travel
+        for acc_data in accommodations_data.values():
+            if all(field in acc_data for field in ['location', 'check_in', 'check_out', 'price']):
+                accommodation = Accomodation(
+                    location=acc_data['location'],
+                    check_in=datetime.strptime(acc_data['check_in'], '%Y-%m-%d').date(),
+                    check_out=datetime.strptime(acc_data['check_out'], '%Y-%m-%d').date(),
+                    price=float(acc_data['price']),
+                    standard=acc_data.get('standard', ''),
+                    link=acc_data.get('link', ''),
+                    trip_id=trip.id
+                )
+                db.session.add(accommodation)
+        
+        # Create travel objects
+        for travel_data in travels_data.values():
+            if all(field in travel_data for field in ['from_location', 'to_location', 'start_date', 'end_date', 'price']):
+                travel = Travel(
+                    from_location=travel_data['from_location'],
+                    to_location=travel_data['to_location'],
+                    start_date=datetime.strptime(travel_data['start_date'], '%Y-%m-%d').date(),
+                    end_date=datetime.strptime(travel_data['end_date'], '%Y-%m-%d').date(),
+                    price=float(travel_data['price']),
+                    trip_id=trip.id
+                )
+                db.session.add(travel)
+
         db.session.commit()
         flash('Trip added successfully!', 'success')
         return redirect(url_for('main.index'))
@@ -48,8 +117,22 @@ def add_trip():
 @main_bp.route('/trip/<int:id>')
 @login_required
 def trip_detail(id):
-    trip = Trip.query.filter_by(id=id, user_id=current_user.id).first_or_404()
-    return render_template('trip_detail.html', trip=trip)
+    trip = Trip.query.filter_by(id=id, user_id=current_user.id).first()
+    
+    # If not owner, check if trip is shared with current user
+    if not trip:
+        shared_trip = TripSharing.get_shared_trip(id, current_user.id)
+        if shared_trip:
+            trip = shared_trip.trip
+        else:
+            # Trip not found or not accessible
+            flash('Trip not found or you do not have access to it.', 'error')
+            return redirect(url_for('main.index'))
+    
+    # Get friends list for sharing
+    user_friends = Friendship.get_user_friends(current_user.id)
+    
+    return render_template('trip_detail.html', trip=trip, friends=user_friends)
 
 @main_bp.route('/delete_trip/<int:id>')
 @login_required
@@ -311,3 +394,88 @@ def remove_friend(user_id):
     
     flash('Friend removed.', 'info')
     return redirect(url_for('main.friends'))
+
+@main_bp.route('/share_trip/<int:trip_id>', methods=['POST'])
+@login_required
+def share_trip(trip_id):
+    trip = Trip.query.filter_by(id=trip_id, user_id=current_user.id).first_or_404()
+    friend_id = request.form.get('friend_id')
+    permission = request.form.get('permission', 'view')
+    
+    if not friend_id:
+        flash('Please select a friend to share with.', 'error')
+        return redirect(url_for('main.trip_detail', id=trip_id))
+    
+    # Check if they are friends
+    if not Friendship.are_friends(current_user.id, int(friend_id)):
+        flash('You can only share trips with your friends.', 'error')
+        return redirect(url_for('main.trip_detail', id=trip_id))
+    
+    # Check if already shared
+    existing_share = TripSharing.query.filter_by(
+        trip_id=trip_id, 
+        shared_with_id=friend_id
+    ).first()
+    
+    if existing_share:
+        flash('Trip is already shared with this friend.', 'info')
+        return redirect(url_for('main.trip_detail', id=trip_id))
+    
+    # Create sharing
+    trip_share = TripSharing(
+        trip_id=trip_id,
+        owner_id=current_user.id,
+        shared_with_id=friend_id,
+        permission=permission,
+        status='pending'
+    )
+    
+    db.session.add(trip_share)
+    db.session.commit()
+    
+    friend = User.query.get(friend_id)
+    flash(f'Trip shared with {friend.full_name}! They will receive an invitation.', 'success')
+    return redirect(url_for('main.trip_detail', id=trip_id))
+
+@main_bp.route('/respond_trip_invitation/<int:invitation_id>/<action>')
+@login_required
+def respond_trip_invitation(invitation_id, action):
+    invitation = TripSharing.query.get_or_404(invitation_id)
+    
+    # Check if current user is the one invited
+    if invitation.shared_with_id != current_user.id:
+        flash('Unauthorized action.', 'error')
+        return redirect(url_for('main.index'))
+    
+    if action == 'accept':
+        invitation.accept()
+        flash(f'You now have access to the trip: {invitation.trip.destination}!', 'success')
+    elif action == 'decline':
+        invitation.decline()
+        flash(f'Trip invitation declined.', 'info')
+    else:
+        flash('Invalid action.', 'error')
+    
+    return redirect(url_for('main.index'))
+
+@main_bp.route('/remove_trip_access/<int:trip_id>/<int:user_id>')
+@login_required
+def remove_trip_access(trip_id, user_id):
+    trip = Trip.query.filter_by(id=trip_id, user_id=current_user.id).first_or_404()
+    
+    trip_share = TripSharing.query.filter_by(
+        trip_id=trip_id,
+        shared_with_id=user_id,
+        owner_id=current_user.id
+    ).first()
+    
+    if not trip_share:
+        flash('Trip access not found.', 'error')
+        return redirect(url_for('main.trip_detail', id=trip_id))
+    
+    user = User.query.get(user_id)
+    db.session.delete(trip_share)
+    db.session.commit()
+    
+    flash(f'Removed trip access for {user.full_name}.', 'info')
+    return redirect(url_for('main.trip_detail', id=trip_id))

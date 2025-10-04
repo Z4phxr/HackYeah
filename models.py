@@ -30,6 +30,7 @@ class Accomodation(db.Model):
     trip_id = db.Column(db.Integer, db.ForeignKey('trips.id'), nullable=False)
     price = db.Column(db.Float, nullable=False)
     standard = db.Column(db.String(50))
+    link = db.Column(db.String(500))
     trip = db.relationship('Trip', back_populates='accommodations')
 
     def __repr__(self):
