@@ -1,0 +1,33 @@
+# Ignoruj pliki i foldery generowane automatycznie
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+instance/
+.env
+.DS_Store
+.vscode/
+.idea/
+*.sqlite3
+*.log
+# Ignoruj pliki systemowe
+Thumbs.db
+# Ignoruj pliki środowiska wirtualnego
+venv/
+ENV/
+.env/
+.venv/
+# Ignoruj pliki testowe
+*.coverage
+.coverage
+htmlcov/
+# Ignoruj pliki konfiguracyjne IDE
+*.iml
+# Ignoruj pliki tymczasowe
+*.swp
+*.bak
+*.tmp
+# Ignoruj pliki zrzutów
+*.dump
+
